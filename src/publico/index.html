@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>backFinal – Estado del sistema</title>
+  <style>
+    :root {
+      --fondo:           #0f172a;
+      --superficie:      #1e293b;
+      --superficie-alt:  #162032;
+      --borde:           #334155;
+      --texto:           #f1f5f9;
+      --texto-suave:     #94a3b8;
+      --verde:           #22c55e;
+      --verde-bg:        rgba(34,197,94,.12);
+      --rojo:            #ef4444;
+      --rojo-bg:         rgba(239,68,68,.12);
+      --amarillo:        #eab308;
+      --amarillo-bg:     rgba(234,179,8,.12);
+      --azul:            #3b82f6;
+      --radio:           .75rem;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--fondo);
+      color: var(--texto);
+      min-height: 100vh;
+      padding: 2.5rem 1rem;
+    }
+
+    .contenedor { max-width: 960px; margin: 0 auto; }
+
+    /* ── Cabecera ── */
+    .cabecera { margin-bottom: 2rem; }
+
+    .cabecera h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -.02em;
+      margin-bottom: .75rem;
+    }
+
+    .etiquetas { display: flex; flex-wrap: wrap; gap: .5rem; }
+
+    .etiqueta {
+      background: var(--superficie);
+      border: 1px solid var(--borde);
+      border-radius: 9999px;
+      padding: .2rem .8rem;
+      font-size: .78rem;
+      color: var(--texto-suave);
+      font-family: monospace;
+    }
+
+    .etiqueta span { color: var(--texto); font-weight: 600; }
+
+    /* ── Tarjetas ── */
+    .tarjetas {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .tarjeta {
+      background: var(--superficie);
+      border: 1px solid var(--borde);
+      border-radius: var(--radio);
+      padding: 1.25rem;
+      border-top-width: 3px;
+      transition: border-color .3s, background .3s;
+    }
+
+    .tarjeta.activo  { border-top-color: var(--verde);   background: var(--superficie); }
+    .tarjeta.error   { border-top-color: var(--rojo);    background: var(--superficie); }
+    .tarjeta.cargando{ border-top-color: var(--amarillo); }
+
+    .tarjeta-cabecera {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .tarjeta-titulo { font-weight: 600; font-size: .95rem; color: var(--texto-suave); }
+
+    .indicador {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--borde);
+      flex-shrink: 0;
+    }
+
+    .indicador.activo   { background: var(--verde); }
+    .indicador.error    { background: var(--rojo); }
+    .indicador.cargando {
+      background: var(--amarillo);
+      animation: pulso 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulso {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: .4; transform: scale(.85); }
+    }
+
+    .estado-valor {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: .35rem;
+    }
+
+    .estado-valor.activo   { color: var(--verde); }
+    .estado-valor.error    { color: var(--rojo); }
+    .estado-valor.cargando { color: var(--amarillo); }
+
+    .estado-detalle {
+      font-size: .83rem;
+      color: var(--texto-suave);
+      min-height: 1.2rem;
+      margin-bottom: .6rem;
+    }
+
+    .estado-tiempo {
+      display: inline-block;
+      font-size: .78rem;
+      font-variant-numeric: tabular-nums;
+      background: var(--fondo);
+      border: 1px solid var(--borde);
+      border-radius: 9999px;
+      padding: .15rem .65rem;
+      color: var(--texto-suave);
+    }
+
+    /* ── Acciones ── */
+    .acciones { margin-bottom: 1.75rem; }
+
+    .boton-probar {
+      background: var(--azul);
+      color: #fff;
+      border: none;
+      border-radius: .5rem;
+      padding: .55rem 1.25rem;
+      font-size: .9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s, opacity .2s;
+    }
+
+    .boton-probar:hover:not(:disabled) { background: #2563eb; }
+    .boton-probar:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ── Secciones ── */
+    .seccion {
+      background: var(--superficie);
+      border: 1px solid var(--borde);
+      border-radius: var(--radio);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .seccion-titulo {
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--texto-suave);
+      margin-bottom: .9rem;
+    }
+
+    .lista-endpoints { list-style: none; display: flex; flex-direction: column; gap: .55rem; }
+
+    .endpoint {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      font-size: .85rem;
+      flex-wrap: wrap;
+    }
+
+    .metodo {
+      background: #1d4ed8;
+      color: #fff;
+      padding: .15rem .55rem;
+      border-radius: .3rem;
+      font-size: .72rem;
+      font-weight: 700;
+      font-family: monospace;
+      min-width: 2.8rem;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .ruta { font-family: monospace; color: var(--texto); }
+
+    .desc-endpoint { color: var(--texto-suave); font-size: .8rem; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      font-size: .8rem;
+      color: var(--texto-suave);
+      margin-top: 1.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--borde);
+    }
+
+    @media (max-width: 540px) {
+      .cabecera h1 { font-size: 1.25rem; }
+      .estado-valor { font-size: 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="contenedor">
+
+    <header class="cabecera">
+      <h1>backFinal – Estado del sistema</h1>
+      <div class="etiquetas">
+        <span class="etiqueta">versión&nbsp;<span id="version">–</span></span>
+        <span class="etiqueta">entorno&nbsp;<span id="entorno">–</span></span>
+        <span class="etiqueta">motor&nbsp;<span id="motor">–</span></span>
+      </div>
+    </header>
+
+    <section class="tarjetas">
+
+      <!-- Tarjeta API -->
+      <article class="tarjeta cargando" id="tarjeta-api">
+        <div class="tarjeta-cabecera">
+          <span class="tarjeta-titulo">API</span>
+          <span class="indicador cargando" id="indicador-api"></span>
+        </div>
+        <div class="estado-valor cargando" id="estado-api">Verificando…</div>
+        <div class="estado-detalle" id="detalle-api">Comprobando servidor</div>
+        <span class="estado-tiempo" id="tiempo-api">–</span>
+      </article>
+
+      <!-- Tarjeta Base de datos -->
+      <article class="tarjeta cargando" id="tarjeta-bd">
+        <div class="tarjeta-cabecera">
+          <span class="tarjeta-titulo">Base de datos</span>
+          <span class="indicador cargando" id="indicador-bd"></span>
+        </div>
+        <div class="estado-valor cargando" id="estado-bd">Verificando…</div>
+        <div class="estado-detalle" id="detalle-bd">Comprobando conexión</div>
+        <span class="estado-tiempo" id="tiempo-bd">–</span>
+      </article>
+
+      <!-- Tarjeta Front -->
+      <article class="tarjeta cargando" id="tarjeta-front">
+        <div class="tarjeta-cabecera">
+          <span class="tarjeta-titulo">Front</span>
+          <span class="indicador cargando" id="indicador-front"></span>
+        </div>
+        <div class="estado-valor cargando" id="estado-front">Verificando…</div>
+        <div class="estado-detalle" id="detalle-front">Comprobando disponibilidad</div>
+        <span class="estado-tiempo" id="tiempo-front">–</span>
+      </article>
+
+    </section>
+
+    <div class="acciones">
+      <button class="boton-probar" id="boton-probar">Probar de nuevo</button>
+    </div>
+
+    <section class="seccion">
+      <div class="seccion-titulo">Endpoints disponibles</div>
+      <ul class="lista-endpoints">
+        <li class="endpoint">
+          <span class="metodo">GET</span>
+          <span class="ruta">/api/estado</span>
+          <span class="desc-endpoint">Estado general del sistema</span>
+        </li>
+        <li class="endpoint">
+          <span class="metodo">GET</span>
+          <span class="ruta">/api/estado/sistema</span>
+          <span class="desc-endpoint">Versión, entorno, motor y uptime</span>
+        </li>
+        <li class="endpoint">
+          <span class="metodo">GET</span>
+          <span class="ruta">/api/estado/base-datos</span>
+          <span class="desc-endpoint">Conexión a la BD con tiempo de respuesta</span>
+        </li>
+        <li class="endpoint">
+          <span class="metodo">GET</span>
+          <span class="ruta">/api/estado/front</span>
+          <span class="desc-endpoint">Disponibilidad del front desde el servidor</span>
+        </li>
+      </ul>
+    </section>
+
+    <footer>
+      Última prueba: <span id="ultima-prueba">–</span>
+    </footer>
+
+  </div>
+
+  <script>
+    const CLASES_ESTADO = ['activo', 'error', 'cargando'];
+
+    const aplicarEstado = (idTarjeta, estado) => {
+      ['tarjeta', 'indicador', 'estado'].forEach((prefijo) => {
+        const el = document.getElementById(`${prefijo}-${idTarjeta}`);
+        if (!el) return;
+        CLASES_ESTADO.forEach((c) => el.classList.remove(c));
+        el.classList.add(estado);
+      });
+    };
+
+    const establecerCargando = (idTarjeta) => {
+      aplicarEstado(idTarjeta, 'cargando');
+      document.getElementById(`estado-${idTarjeta}`).textContent = 'Verificando…';
+      document.getElementById(`detalle-${idTarjeta}`).textContent = 'Comprobando…';
+      document.getElementById(`tiempo-${idTarjeta}`).textContent = '–';
+    };
+
+    const formatearUptime = (segundos) => {
+      if (segundos < 60) return `${segundos}s uptime`;
+      const horas = Math.floor(segundos / 3600);
+      const minutos = Math.floor((segundos % 3600) / 60);
+      const segs = segundos % 60;
+      if (horas > 0) return `${horas}h ${minutos}m ${segs}s uptime`;
+      return `${minutos}m ${segs}s uptime`;
+    };
+
+    const actualizarTarjetaApi = (datos) => {
+      aplicarEstado('api', 'activo');
+      document.getElementById('estado-api').textContent = 'Activa';
+      document.getElementById('detalle-api').textContent = formatearUptime(datos.uptimeSegundos);
+      document.getElementById('tiempo-api').textContent = datos.motor;
+      document.getElementById('version').textContent = datos.version;
+      document.getElementById('entorno').textContent = datos.entorno;
+      document.getElementById('motor').textContent = datos.motor;
+    };
+
+    const actualizarTarjetaBd = (datos) => {
+      const estado = datos.estaConectada ? 'activo' : 'error';
+      aplicarEstado('bd', estado);
+      document.getElementById('estado-bd').textContent = datos.estaConectada ? 'Conectada' : 'Sin conexión';
+      document.getElementById('detalle-bd').textContent = datos.mensaje;
+      document.getElementById('tiempo-bd').textContent = `${datos.tiempoRespuestaMs} ms`;
+    };
+
+    const actualizarTarjetaFront = (datos) => {
+      const estado = datos.estaDisponible ? 'activo' : 'error';
+      aplicarEstado('front', estado);
+      document.getElementById('estado-front').textContent = datos.estaDisponible ? 'Disponible' : 'No disponible';
+      document.getElementById('detalle-front').textContent = datos.codigoHttp
+        ? `HTTP ${datos.codigoHttp}`
+        : 'Sin respuesta (timeout o sin conexión)';
+      document.getElementById('tiempo-front').textContent = `${datos.tiempoRespuestaMs} ms`;
+    };
+
+    const fetchJson = async (url) => {
+      const res = await fetch(url);
+      const json = await res.json();
+      return json.datos;
+    };
+
+    const ejecutarPruebas = async () => {
+      const boton = document.getElementById('boton-probar');
+      boton.disabled = true;
+      boton.textContent = 'Probando…';
+
+      ['api', 'bd', 'front'].forEach(establecerCargando);
+
+      const [rSistema, rBd, rFront] = await Promise.allSettled([
+        fetchJson('/api/estado/sistema'),
+        fetchJson('/api/estado/base-datos'),
+        fetchJson('/api/estado/front'),
+      ]);
+
+      if (rSistema.status === 'fulfilled') {
+        actualizarTarjetaApi(rSistema.value);
+      } else {
+        aplicarEstado('api', 'error');
+        document.getElementById('estado-api').textContent = 'Error';
+        document.getElementById('detalle-api').textContent = 'No se pudo contactar con la API';
+      }
+
+      if (rBd.status === 'fulfilled') {
+        actualizarTarjetaBd(rBd.value);
+      } else {
+        aplicarEstado('bd', 'error');
+        document.getElementById('estado-bd').textContent = 'Error';
+        document.getElementById('detalle-bd').textContent = 'No se pudo obtener estado';
+      }
+
+      if (rFront.status === 'fulfilled') {
+        actualizarTarjetaFront(rFront.value);
+      } else {
+        aplicarEstado('front', 'error');
+        document.getElementById('estado-front').textContent = 'Error';
+        document.getElementById('detalle-front').textContent = 'No se pudo obtener estado';
+      }
+
+      document.getElementById('ultima-prueba').textContent =
+        new Date().toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'medium' });
+
+      boton.disabled = false;
+      boton.textContent = 'Probar de nuevo';
+    };
+
+    document.getElementById('boton-probar').addEventListener('click', ejecutarPruebas);
+    ejecutarPruebas();
+  </script>
+</body>
+</html>
